@@ -1,55 +1,50 @@
+#include <uk/alloc.h>
+#include <uk/boot.h>
+#include <uk/arch/lcpu.h>
+#include <uk/sched.h>
+#include <uk/schedcoop.h>
+#include <uk/process.h>
 #include <stdio.h>
+#include <pthread.h>
 
-/* Import user configuration: */
-#ifdef __Unikraft__
-#include <uk/config.h>
-#endif /* __Unikraft__ */
+#define NUM_ROUNDS	100
+#define NUM_THREADS	10
 
-#if CONFIG_APPHELLOWORLD_SPINNER
-#include <time.h>
-#include <errno.h>
-#include "monkey.h"
+static unsigned long sum = 0;
 
-static void millisleep(unsigned int millisec)
+static void *thread_func(void *arg)
 {
-	struct timespec ts;
-	int ret;
+	size_t v = (size_t) arg;
+	size_t i;
 
-	ts.tv_sec = millisec / 1000;
-	ts.tv_nsec = (millisec % 1000) * 1000000;
-	do
-		ret = nanosleep(&ts, &ts);
-	while (ret && errno == EINTR);
-}
-#endif /* CONFIG_APPHELLOWORLD_SPINNER */
-
-int main(int argc, char *argv[])
-{
-#if CONFIG_APPHELLOWORLD_PRINTARGS || CONFIG_APPHELLOWORLD_SPINNER
-	int i;
-#endif
-
-	printf("Hello world!\n");
-
-#if CONFIG_APPHELLOWORLD_PRINTARGS
-	printf("Arguments: ");
-	for (i=0; i<argc; ++i)
-		printf(" \"%s\"", argv[i]);
-	printf("\n");
-#endif /* CONFIG_APPHELLOWORLD_PRINTARGS */
-
-#if CONFIG_APPHELLOWORLD_SPINNER
-	i = 0;
-	printf("\n\n\n");
-	for (;;) {
-		i %= (monkey3_frame_count * 3);
-		printf("\r\033[2A %s \n", monkey3[i++]);
-		printf(" %s \n",          monkey3[i++]);
-		printf(" %s ",            monkey3[i++]);
-		fflush(stdout);
-		millisleep(250);
+	for (i = 0; i < NUM_ROUNDS; i++) {
+		sum += v;
+		
 	}
-#endif /* CONFIG_APPHELLOWORLD_SPINNER */
+
+	return NULL;
+}
+
+int main(void)
+{
+	size_t i;
+	pthread_t th[NUM_THREADS];
+	int rc;
+
+	printf("\nhere in main\n");
+	for (i = 0; i < NUM_THREADS; i++) {
+		rc = pthread_create(&th[i], NULL, thread_func, (void *) i);
+		printf("\npthread create in main\n");
+	}
+
+	for (i = 0; i < NUM_THREADS; i++) {
+		rc = pthread_join(th[i], NULL);
+		printf("\npthread join in main\n");
+	}
+
+	
+
+	printf("sum is: %lu\n", sum);
 
 	return 0;
 }
