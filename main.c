@@ -22,6 +22,8 @@ static void *thread_func(void *arg)
 		
 	}
 
+	printf("\npthread executed\n");
+
 	return NULL;
 }
 
